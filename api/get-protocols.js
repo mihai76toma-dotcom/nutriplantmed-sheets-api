@@ -1,15 +1,31 @@
 // api/get-protocols.js
 
-const apiKey = "AIzaSyCu3CL7WXyLegw_f291saQtjjdpWGxGkgQ"; // aceeași cheie
+// 🔑 CHEIA TA Google Sheets
+const apiKey = "AIzaSyCu3CL7WXyLegw_f291saQtjjdpWGxGkgQ";
+
+// mic helper: curăță textul (spații duble, spații la început/sfârșit)
+function normalizeText(str) {
+  if (!str) return "";
+  return String(str).replace(/\s+/g, " ").trim();
+}
+
+// facem un "slug" prietenos pentru căutare (fără diacritice, doar litere/cifre)
+function makeSlug(str) {
+  return normalizeText(str)
+    .toLowerCase()
+    .normalize("NFD")                   // sparge diacriticele
+    .replace(/[\u0300-\u036f]/g, "")    // scoate diacriticele
+    .replace(/[^a-z0-9]+/g, "-")        // orice nu e litera/cifră devine "-"
+    .replace(/^-+|-+$/g, "");           // scoatem - de la început/sfârșit
+}
 
 module.exports = async function handler(req, res) {
   const { sheet_id, range } = req.query;
 
   if (!sheet_id || !range) {
-    res
+    return res
       .status(400)
       .json({ error: "Parametrii 'sheet_id' și 'range' sunt obligatorii." });
-    return;
   }
 
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheet_id}/values/${encodeURIComponent(
@@ -21,56 +37,110 @@ module.exports = async function handler(req, res) {
     const data = await response.json();
 
     if (!data.values) {
-      res.status(404).json({
+      return res.status(404).json({
         error: "Nu s-au găsit date în intervalul specificat.",
+        details: data,
       });
-      return;
     }
 
     const rows = data.values;
     const protocols = [];
     let current = null;
 
-    // Structura ta: Afectiune (majuscule) + sub ea MINIM / ACCEPTABIL / IDEAL
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      const colA = ((row[0] || "").trim()).toUpperCase();
-      const colB = (row[1] || "").trim();
+    for (const row of rows) {
+      const colA = normalizeText(row[0] || "");
+      const colB = normalizeText(row[1] || "");
 
-      if (!colA) continue;
+      // rând gol – ignorăm
+      if (!colA && !colB) continue;
 
-      if (colA === "MINIM") {
-        if (current) current.minim = colB;
+      const upperA = colA.toUpperCase();
+
+      // ============================
+      // 1) rând cu AFECȚIUNE nouă
+      // ============================
+      if (upperA && upperA !== "MINIM" && upperA !== "ACCEPTABIL" && upperA !== "IDEAL") {
+        // închidem protocolul anterior, dacă există
+        if (current) {
+          protocols.push(current);
+        }
+
+        current = {
+          index: protocols.length + 1,
+          afectiune: normalizeText(colA),
+          descriere: normalizeText(colB),
+          minim: "",
+          acceptabil: "",
+          ideal: "",
+          slug: makeSlug(colA),
+        };
         continue;
       }
 
-      if (colA === "ACCEPTABIL") {
-        if (current) current.acceptabil = colB;
+      // dacă încă nu avem "current", nu avem ce completa
+      if (!current) continue;
+
+      // ==================================
+      // 2) rând MINIM / ACCEPTABIL / IDEAL
+      // ==================================
+      if (upperA === "MINIM") {
+        current.minim = normalizeText(
+          [current.minim, colB].filter(Boolean).join(" ")
+        );
         continue;
       }
 
-      if (colA === "IDEAL") {
-        if (current) current.ideal = colB;
+      if (upperA === "ACCEPTABIL") {
+        current.acceptabil = normalizeText(
+          [current.acceptabil, colB].filter(Boolean).join(" ")
+        );
         continue;
       }
 
-      // Dacă ajungem aici, e o nouă AFECȚIUNE
-      current = {
-        index: i + 1,         // rândul aproximativ din foaie
-        afectiune: colA,      // numele afecțiunii (INFECTII URINARE etc.)
-        descriere: colB,      // textul de manifestare din coloana B
-        minim: "",
-        acceptabil: "",
-        ideal: "",
-      };
+      if (upperA === "IDEAL") {
+        current.ideal = normalizeText(
+          [current.ideal, colB].filter(Boolean).join(" ")
+        );
+        continue;
+      }
 
+      // ==================================
+      // 3) rânduri de continuare pentru descriere
+      //    (coloana A goală, dar B are text)
+      // ==================================
+      if (!colA && colB) {
+        current.descriere = normalizeText(
+          [current.descriere, colB].filter(Boolean).join(" ")
+        );
+      }
+    }
+
+    // adăugăm ultimul protocol dacă există
+    if (current) {
       protocols.push(current);
     }
 
-    res.status(200).json({ protocols });
+    // ==================================
+    // 4) curățare finală:
+    //    - scoatem rândurile fără afectiune
+    //    - normalizăm din nou textele, just in case
+    // ==================================
+    const cleaned = protocols
+      .filter((p) => p.afectiune) // scoatem titlurile de grup gen "APARAT CARDIO-VASCULAR"
+      .map((p, idx) => ({
+        index: idx + 1,
+        afectiune: normalizeText(p.afectiune),
+        slug: makeSlug(p.afectiune),
+        descriere: normalizeText(p.descriere),
+        minim: normalizeText(p.minim),
+        acceptabil: normalizeText(p.acceptabil),
+        ideal: normalizeText(p.ideal),
+      }));
+
+    return res.status(200).json({ protocols: cleaned });
   } catch (err) {
-    res.status(500).json({
-      error: "Eroare la preluarea sau procesarea datelor din Google Sheets.",
+    return res.status(500).json({
+      error: "Eroare la preluarea datelor din Google Sheets.",
       details: err.message,
     });
   }
