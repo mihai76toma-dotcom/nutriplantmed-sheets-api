@@ -1,7 +1,8 @@
-// api/get-protocols.js 
-const apiKey = "AICI_PUI_CHEIA_TA_API"; // aceeași cheie
+// api/get-protocols.js
 
-export default async function handler(req, res) {
+const apiKey = "AIzaSyA2kHZjeyN26GaeSeAvz_Ow3twCRMScpRQ"; // aceeași cheie
+
+module.exports = async function handler(req, res) {
   const { sheet_id, range } = req.query;
 
   if (!sheet_id || !range) {
@@ -20,7 +21,9 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (!data.values) {
-      res.status(404).json({ error: "Nu s-au găsit date în intervalul specificat." });
+      res
+        .status(404)
+        .json({ error: "Nu s-au găsit date în intervalul specificat." });
       return;
     }
 
@@ -35,7 +38,7 @@ export default async function handler(req, res) {
 
       const upper = colA.toUpperCase();
 
-      // Rând de AFECȚIUNE (majuscule, dar nu MINIM/ACCEPTABIL/IDEAL)
+      // Rând de AFECȚIUNE (nu MINIM/ACCEPTABIL/IDEAL)
       if (upper && !["MINIM", "ACCEPTABIL", "IDEAL"].includes(upper)) {
         if (current) protocols.push(current);
         current = {
@@ -61,8 +64,4 @@ export default async function handler(req, res) {
       details: err.message,
     });
   }
-}
-
-
-
-
+};
