@@ -18,16 +18,16 @@ module.exports = async function handler(req, res) {
 
   try {
     const response = await fetch(url);
-    const data = await response.json();
+const data = await response.json();
 
-    if (!data.values) {
-      res.status(404).json({
-        error: "Nu s-au găsit date în intervalul specificat.",
-      });
-      return;
-    }
+// dacă Google trimite o eroare, o returnăm așa cum e
+if (data.error) {
+  return res.status(response.status || 500).json(data);
+}
 
-    res.status(200).json({ values: data.values });
+// altfel, trimitem TOT ce primim (ca să vedem exact structura)
+return res.status(200).json(data);
+
   } catch (err) {
     res.status(500).json({
       error: "Eroare la preluarea datelor din Google Sheets.",
