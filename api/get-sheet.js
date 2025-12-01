@@ -1,6 +1,6 @@
 // api/get-sheet.js
 
-const apiKey = "Al2sSyA2kHZjeyN26GaeSeAvZ_0w3twCRMSCpRQ"; // cheia ta
+const apiKey = "AIzaSyCu3CL7WXyLegw_f291saQtjjdpWGxGkgQ"; // cheia ta
 
 module.exports = async function handler(req, res) {
   const { sheet_id, range } = req.query;
