@@ -59,7 +59,7 @@ app.get("/get-sheet", async (req, res) => {
 //
 // GET /get-protocols?sheet_id=...&range=Suplimente%20recomandate!A1:Z300
 // ===============================
-app.get("/get-protocols", async (req, res) => {
+app.get("/test-protocols", async (req, res) => {
   try {
     const { sheet_id, range } = req.query;
 
@@ -131,4 +131,5 @@ app.get("/get-protocols", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server NutriPlantMed API pornit pe portul ${PORT}`);
 });
+
 
