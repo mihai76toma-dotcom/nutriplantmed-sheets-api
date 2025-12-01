@@ -4,7 +4,7 @@ import fetch from "node-fetch";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 🔑 CHEIA TA GOOGLE SHEETS
+// 🔑 CHEIA TA GOOGLE SHEETS (INLOCUIESTE CU A TA)
 const apiKey = "AIzaSyA2kHZjeyN26GaeSeAvz_Ow3twCRMScpRQ";
 
 // ===============================
@@ -16,6 +16,7 @@ app.get("/", (req, res) => {
 
 // ===============================
 // Endpoint simplu – citește orice foaie
+// GET /get-sheet?sheet_id=...&range=Foaie!A1:Z50
 // ===============================
 app.get("/get-sheet", async (req, res) => {
   try {
@@ -51,7 +52,12 @@ app.get("/get-sheet", async (req, res) => {
 
 // ===============================
 // Endpoint principal – /get-protocols
-// Structură pentru foaia PROTOCOALE DE TRATAMENT
+// Structură pentru foaia cu protocoale:
+// - rând cu AFECȚIUNE (majuscule) în coloana A
+// - sub ea rânduri cu A = MINIM / ACCEPTABIL / IDEAL,
+//   iar produsele în coloana B
+//
+// GET /get-protocols?sheet_id=...&range=Suplimente%20recomandate!A1:Z300
 // ===============================
 app.get("/get-protocols", async (req, res) => {
   try {
@@ -80,17 +86,18 @@ app.get("/get-protocols", async (req, res) => {
 
     for (let i = 0; i < values.length; i++) {
       const row = values[i];
-      const colA = (row[0] || "").trim().toUpperCase();
+      const colAraw = (row[0] || "").trim();
+      const colA = colAraw.toUpperCase();
 
-      // Detectează afecțiuni (rânduri scrise cu majuscule)
+      // Detectează afecțiuni: text în coloana A, cu litere mari, diferit de MINIM/ACCEPTABIL/IDEAL
       if (
         colA &&
         !["MINIM", "ACCEPTABIL", "IDEAL"].includes(colA) &&
-        colA === colA.toUpperCase()
+        colA === colAraw.toUpperCase()
       ) {
         currentCondition = {
           index: i + 1,
-          afectiune: colA,
+          afectiune: colAraw,
           descriere: (row[1] || "").trim(),
           minim: "",
           acceptabil: "",
@@ -98,10 +105,14 @@ app.get("/get-protocols", async (req, res) => {
         };
         protocols.push(currentCondition);
       } else if (currentCondition) {
-        if (colA === "MINIM") currentCondition.minim = (row[1] || "").trim();
-        if (colA === "ACCEPTABIL")
+        // Rândurile MINIM / ACCEPTABIL / IDEAL
+        if (colA === "MINIM") {
+          currentCondition.minim = (row[1] || "").trim();
+        } else if (colA === "ACCEPTABIL") {
           currentCondition.acceptabil = (row[1] || "").trim();
-        if (colA === "IDEAL") currentCondition.ideal = (row[1] || "").trim();
+        } else if (colA === "IDEAL") {
+          currentCondition.ideal = (row[1] || "").trim();
+        }
       }
     }
 
@@ -115,9 +126,8 @@ app.get("/get-protocols", async (req, res) => {
 });
 
 // ===============================
-// Pornire server
+// Pornire server (pt rulare locală)
 // ===============================
 app.listen(PORT, () => {
   console.log(`🚀 Server NutriPlantMed API pornit pe portul ${PORT}`);
 });
-
