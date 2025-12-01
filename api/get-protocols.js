@@ -1,6 +1,6 @@
 // api/get-protocols.js
 
-const apiKey = "AIzaSyA2kHZjeyN26GaeSeAvz_Ow3twCRMScpRQ"; // aceeași cheie
+const apiKey = "Al2sSyA2kHZjeyN26GaeSeAvZ_0w3twCRMSCpRQ"; // aceeași cheie
 
 module.exports = async function handler(req, res) {
   const { sheet_id, range } = req.query;
@@ -21,9 +21,9 @@ module.exports = async function handler(req, res) {
     const data = await response.json();
 
     if (!data.values) {
-      res
-        .status(404)
-        .json({ error: "Nu s-au găsit date în intervalul specificat." });
+      res.status(404).json({
+        error: "Nu s-au găsit date în intervalul specificat.",
+      });
       return;
     }
 
@@ -31,36 +31,46 @@ module.exports = async function handler(req, res) {
     const protocols = [];
     let current = null;
 
-    for (const row of rows) {
-      const colA = (row[0] || "").trim();
+    // Structura ta: Afectiune (majuscule) + sub ea MINIM / ACCEPTABIL / IDEAL
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const colA = ((row[0] || "").trim()).toUpperCase();
       const colB = (row[1] || "").trim();
+
       if (!colA) continue;
 
-      const upper = colA.toUpperCase();
-
-      // Rând de AFECȚIUNE (nu MINIM/ACCEPTABIL/IDEAL)
-      if (upper && !["MINIM", "ACCEPTABIL", "IDEAL"].includes(upper)) {
-        if (current) protocols.push(current);
-        current = {
-          afectiune: colA,
-          descriere: colB,
-          minim: "",
-          acceptabil: "",
-          ideal: "",
-        };
-      } else if (current && ["MINIM", "ACCEPTABIL", "IDEAL"].includes(upper)) {
-        if (upper === "MINIM") current.minim = colB;
-        if (upper === "ACCEPTABIL") current.acceptabil = colB;
-        if (upper === "IDEAL") current.ideal = colB;
+      if (colA === "MINIM") {
+        if (current) current.minim = colB;
+        continue;
       }
-    }
 
-    if (current) protocols.push(current);
+      if (colA === "ACCEPTABIL") {
+        if (current) current.acceptabil = colB;
+        continue;
+      }
+
+      if (colA === "IDEAL") {
+        if (current) current.ideal = colB;
+        continue;
+      }
+
+      // Dacă ajungem aici, e o nouă AFECȚIUNE
+      current = {
+        index: i + 1,         // rândul aproximativ din foaie
+        afectiune: colA,      // numele afecțiunii (INFECTII URINARE etc.)
+        descriere: colB,      // textul de manifestare din coloana B
+        minim: "",
+        acceptabil: "",
+        ideal: "",
+      };
+
+      protocols.push(current);
+    }
 
     res.status(200).json({ protocols });
   } catch (err) {
     res.status(500).json({
-      error: "Eroare la procesarea protocoalelor.",
+      error: "Eroare la preluarea sau procesarea datelor din Google Sheets.",
       details: err.message,
     });
   }
