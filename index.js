@@ -11,7 +11,7 @@ const apiKey = "AIzaSyA2kHZjeyN26GaeSeAvz_Ow3twCRMScpRQ";
 // Endpoint de test – verificare API
 // ===============================
 app.get("/", (req, res) => {
-  res.send("✅ NutriPlantMed Google Sheets API este activ!");
+  res.send("✅ VERSIUNE NOUA API – test Mihai");
 });
 
 // ===============================
@@ -131,3 +131,4 @@ app.get("/get-protocols", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server NutriPlantMed API pornit pe portul ${PORT}`);
 });
+
