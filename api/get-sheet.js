@@ -1,8 +1,7 @@
 // api/get-sheet.js
 
-const apiKey = "AIzaSyA2kHZjeyN26GaeSeAvz_Ow3twCRMScpRQ"; // cheia ta
+const apiKey = "Al2sSyA2kHZjeyN26GaeSeAvZ_0w3twCRMSCpRQ"; // cheia ta
 
-// CommonJS export pentru Vercel (Node.js)
 module.exports = async function handler(req, res) {
   const { sheet_id, range } = req.query;
 
@@ -18,13 +17,13 @@ module.exports = async function handler(req, res) {
   )}?key=${apiKey}`;
 
   try {
-    const response = await fetch(url); // fetch global în Node 18+ (Vercel)
+    const response = await fetch(url);
     const data = await response.json();
 
     if (!data.values) {
-      res
-        .status(404)
-        .json({ error: "Nu s-au găsit date în intervalul specificat." });
+      res.status(404).json({
+        error: "Nu s-au găsit date în intervalul specificat.",
+      });
       return;
     }
 
