@@ -1,6 +1,6 @@
 // api/get-protocols.js
 
-const apiKey = "Al2sSyA2kHZjeyN26GaeSeAvZ_0w3twCRMSCpRQ"; // aceeași cheie
+const apiKey = "AIzaSyCu3CL7WXyLegw_f291saQtjjdpWGxGkgQ"; // aceeași cheie
 
 module.exports = async function handler(req, res) {
   const { sheet_id, range } = req.query;
